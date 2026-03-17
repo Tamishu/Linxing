@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LinXing Application</title>
+    <script src="https://www.gstatic.com/firebasejs/9.1.2/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.1.2/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.1.2/firebase-database.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.1.2/firebase-storage.js"></script>
+    <script>
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_AUTH_DOMAIN",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_STORAGE_BUCKET",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+
+        // Initialize Firebase
+        const app = firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth(app);
+        const database = firebase.database(app);
+        const storage = firebase.storage(app);
+    </script>
+</head>
+<body>
+    <h1>Welcome to LinXing Application</h1>
+    <form id="registrationForm">
+        <label for="name">Name:</label>
+        <input type="text" id="name" required minlength="2">
+
+        <label for="age">Age:</label>
+        <input type="number" id="age" required min="18">
+
+        <label for="phone">Phone:</label>
+        <input type="tel" id="phone" pattern="[0-9]{3}-[0-9]{3}-[0-9]{4}" placeholder="123-456-7890" required>
+
+        <label for="photo">Upload Photo:</label>
+        <input type="file" id="photo" accept="image/*" required>
+
+        <button type="submit">Submit</button>
+    </form>
+
+    <div id="error-message"></div>
+
+    <script>
+        document.getElementById('registrationForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+
+            const name = document.getElementById('name').value;
+            const age = parseInt(document.getElementById('age').value);
+            const phone = document.getElementById('phone').value;
+            const photo = document.getElementById('photo').files[0];
+            const errorMessage = document.getElementById('error-message');
+
+            // Validate age
+            if (age < 18) {
+                errorMessage.textContent = 'You must be at least 18 years old.';
+                return;
+            }
+
+            // Check for duplicate user
+            const userRef = database.ref('users');
+            userRef.orderByChild('phone').equalTo(phone).once('value').then(snapshot => {
+                if (snapshot.exists()) {
+                    errorMessage.textContent = 'This phone number is already registered.';
+                    return;
+                }
+
+                // Upload photo to Firebase Storage
+                const storageRef = storage.ref('photos/' + photo.name);
+                storageRef.put(photo).then(() => {
+                    // Save user data to Firebase Database
+                    userRef.push({ name, age, phone });
+                    successRedirection();
+                }).catch(error => {
+                    errorMessage.textContent = 'Error uploading photo: ' + error.message;
+                });
+            });
+        });
+
+        function successRedirection() {
+            window.location.href = 'success.html';
+        }
+    </script>
+</body>
+</html>
